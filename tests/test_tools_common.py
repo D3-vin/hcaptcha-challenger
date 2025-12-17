@@ -32,7 +32,7 @@ def test_list_models():
 
 def test_generate_content_fast():
     cc = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    response = cc.models.generate_content(model="gemini-2.0-flash-lite", contents="Hello, world!")
+    response = cc.models.generate_content(model="gemini-2.5-flash-lite", contents="Hello, world!")
 
     output_path = output_dir.joinpath("generate_content_fast.json")
     text = json.dumps(response.model_dump(mode="json"), indent=2, ensure_ascii=False)
@@ -42,7 +42,7 @@ def test_generate_content_fast():
 def test_generate_content_reasoning():
     cc = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     response = cc.models.generate_content(
-        model="gemini-2.5-flash-preview-04-17",
+        model="gemini-2.5-flash",
         contents="Hello, world!",
         config=types.GenerateContentConfig(
             temperature=0,

@@ -23,6 +23,7 @@ from loguru import logger
 from playwright.async_api import Locator, expect, Page, Response, TimeoutError, FrameLocator, Frame
 from pydantic import Field, field_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 from hcaptcha_challenger.helper import create_coordinate_grid
 from hcaptcha_challenger.models import (
@@ -134,6 +135,16 @@ class AgentConfig(BaseSettings):
         description="If you use Camoufox, it is recommended to turn off "
         "the custom Bessel track generator of hcaptcha-challenger "
         "and use Camoufox(humanize=True)",
+    )
+
+    MAX_CRUMB_COUNT: int = Field(
+        default=2,
+        description="""
+        CRUMB_COUNT: The number of challenge rounds you need to solve once the challenge starts.
+        In the vast majority of cases this value will be 2, some specialized sites will set this value to 3.
+        In most cases you don't need to change this value, the `_review_challenge_type` task determines the exact value of `CRUMB_COUNT` based on the information of the assigned task.
+        Only manually change this value if you are working on a very specific task that prevents the `_review_challenge_type` from hijacking the task information and the maximum number of tasks > 2.
+        """,
     )
 
     EXECUTION_TIMEOUT: float = Field(
@@ -428,7 +439,10 @@ class RoboticArm:
         await self.page.wait_for_timeout(500)
         frame_challenge = await self.get_challenge_frame_locator()
         crumbs = frame_challenge.locator("//div[@class='Crumb']")
-        return 2 if await crumbs.first.is_visible() else 1
+        with suppress(Exception):
+            crumbs_count = await crumbs.count()
+            return crumbs_count if crumbs_count else 1
+        return self.config.MAX_CRUMB_COUNT if await crumbs.first.is_visible() else 1
 
     async def check_challenge_type(self) -> RequestType | ChallengeTypeEnum | None:
         # fixme
@@ -483,6 +497,13 @@ class RoboticArm:
 
         return True
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_fixed(1),
+        before_sleep=lambda retry_state: logger.warning(
+            f"Retry request ({retry_state.attempt_number}/2) - Wait 1 second - Exception: {retry_state.outcome.exception()}"
+        ),
+    )
     async def _capture_spatial_mapping(
         self, frame_challenge: FrameLocator | Frame, cache_key: Path, crumb_id: int | str
     ):

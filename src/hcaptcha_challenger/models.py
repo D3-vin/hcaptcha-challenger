@@ -94,17 +94,17 @@ class CaptchaRequestConfig(BaseModel):
 
 
 class CaptchaTaskEntity(BaseModel):
-    entity_id: str
-    entity_uri: str
-    coords: List[int]
-    size: List[int]
-    metadata: dict
+    entity_id: str | None = Field(default="")
+    entity_uri: str | None = Field(default="")
+    coords: List[int] | None = Field(default_factory=list)
+    size: List[int] | None = Field(default_factory=list)
+    metadata: dict | None = Field(default_factory=dict)
 
 
 class CaptchaTask(BaseModel):
-    datapoint_uri: str
-    task_key: str
-    entities: List[CaptchaTaskEntity] = Field(default_factory=list)
+    datapoint_uri: str | None = Field(default="")
+    task_key: str | None = Field(default="")
+    entities: List[CaptchaTaskEntity] | None = Field(default_factory=list)
 
 
 class CaptchaPayload(BaseModel):
@@ -211,13 +211,8 @@ SCoTModelType = Union[
         # Recommended for production environments for more tolerant rate limits.
         # [✨] https://ai.google.dev/gemini-api/docs/models#gemini-2.5-pro
         "gemini-2.5-pro",
-        "gemini-2.5-pro-preview-06-05",
-        "gemini-2.5-pro-preview-05-06",
-        "gemini-2.5-pro-preview-03-25",
         # [🤷‍♂️] https://ai.google.dev/gemini-api/docs/models#gemini-2.5-flash
         "gemini-2.5-flash",
-        # The following is a free experimental model that may fail at any time and is for demo only
-        "gemini-2.5-pro-exp-03-25",
     ],
 ]
 
@@ -228,23 +223,15 @@ FastShotModelType = Union[
     Literal[
         # [✨] https://ai.google.dev/gemini-api/docs/models#gemini-2.5-flash
         "gemini-2.5-flash",
-        # https://ai.google.dev/gemini-api/docs/models#gemini-2.0-flash
-        "gemini-2.0-flash",
         # https://ai.google.dev/gemini-api/docs/models#gemini-2.5-flash-lite
-        "gemini-2.5-flash-lite-preview-06-17",
-        # https://ai.google.dev/gemini-api/docs/models#gemini-2.0-flash-lite
-        "gemini-2.0-flash-lite",
+        "gemini-2.5-flash-lite",
     ],
 ]
 
 DEFAULT_FAST_SHOT_MODEL: FastShotModelType = "gemini-2.5-flash"
 
 THINKING_BUDGET_MODELS: List[Union[SCoTModelType, FastShotModelType]] = [
-    "gemini-2.5-flash-lite-preview-06-17",
-    "gemini-2.5-flash-preview-04-17",
-    "gemini-2.5-flash-preview-05-20",
     "gemini-2.5-flash",
-    "gemini-2.5-pro-preview-06-05",
     "gemini-2.5-pro",
 ]
 
@@ -353,6 +340,7 @@ class SpatialPath(BaseModel):
 
 class ImageDragDropChallenge(BaseModel):
     challenge_prompt: str
+    inferred_rule: str
     paths: List[SpatialPath]
 
     @property
@@ -364,7 +352,11 @@ class ImageDragDropChallenge(BaseModel):
             }
             for i in self.paths
         ]
-        bundle = {"Challenge Prompt": self.challenge_prompt, "Coordinates": str(_coordinates)}
+        bundle = {
+            "Challenge Prompt": self.challenge_prompt,
+            "Inferred Rule": self.inferred_rule,
+            "Coordinates": str(_coordinates),
+        }
         return json.dumps(bundle, indent=2, ensure_ascii=False)
 
     def get_approximate_paths(self, bbox) -> List[SpatialPath]:

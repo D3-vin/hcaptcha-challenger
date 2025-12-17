@@ -9,9 +9,7 @@ from hcaptcha_challenger import SpatialBboxReasoner
 from hcaptcha_challenger.helper import create_coordinate_grid, FloatRect
 
 dotenv.load_dotenv()
-gic = SpatialBboxReasoner(
-    gemini_api_key=os.getenv("GEMINI_API_KEY"), model='gemini-2.5-flash-preview-04-17'
-)
+gic = SpatialBboxReasoner(gemini_api_key=os.getenv("GEMINI_API_KEY"), model='gemini-2.5-flash')
 
 CHALLENGE_VIEW_DIR = Path(__file__).parent.joinpath("challenge_view/image_drag_drop")
 
